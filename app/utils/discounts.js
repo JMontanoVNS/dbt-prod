@@ -26,13 +26,4 @@ export default [
     status: true,
     discountType: "test",
   },
-  {
-    id: 321,
-    name: "discount-test-2",
-    startDate: "2023-11-03T15:18:36.159Z",
-    customerTags: ["customer-tag-1", "customer-tag-2"],
-    productTags: ["product-tag-1", "product-tag-2"],
-    status: false,
-    discountType: "test",
-  },
 ];
