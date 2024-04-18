@@ -3,12 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model discounts {
-  id           Int      @id @default(autoincrement())
+  id           Int              @id @default(autoincrement())
   amount       Float
   customerTags String?
   productTags  String?
