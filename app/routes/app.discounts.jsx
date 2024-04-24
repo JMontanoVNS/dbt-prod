@@ -17,6 +17,7 @@ import { authenticate } from "../shopify.server";
 import { useCallback, useEffect, useState } from "react";
 import { useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import { json } from "@remix-run/node";
+import prisma from "../db.server";
 
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -31,7 +32,9 @@ export const action = async ({ request }) => {
       },
     },
   });
-  const discountsShopifyIds = selectedDiscounts.map(discount => discount.discountId)
+  const discountsShopifyIds = selectedDiscounts.map(
+    (discount) => discount.discountId
+  );
 
   const response = await admin.graphql(
     `#graphql
@@ -65,7 +68,7 @@ export const action = async ({ request }) => {
     return json({ deleteDiscounts });
   }
 
-  return json({"error": "There was an error during the process"});
+  return json({ error: "There was an error during the process" });
 };
 
 export const loader = async ({ request }) => {
@@ -84,11 +87,11 @@ export default function Discounts() {
     /* ------------------- Table data start ------------------- */
   }
   const statusTones = {
-    ACTIVE: 'success',
-    INACTIVE: 'warning',
-    SCHEDULED: 'attention',
-    EXPIRED: 'critical',
-  }
+    ACTIVE: "success",
+    INACTIVE: "warning",
+    SCHEDULED: "attention",
+    EXPIRED: "critical",
+  };
   const [discounts, setDiscounts] = useState(discountsDB);
   const resourceName = {
     singular: "discount",
