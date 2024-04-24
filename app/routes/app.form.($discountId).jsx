@@ -25,6 +25,7 @@ import { useEffect, useRef, useState } from "react";
 import { CalendarIcon, ArrowRightIcon } from "@shopify/polaris-icons";
 import { useLoaderData, useSubmit } from "@remix-run/react";
 import { json, redirect } from "@remix-run/node";
+import prisma from "../db.server";
 
 export const loader = async ({ request, params }) => {
   await authenticate.admin(request);
@@ -75,15 +76,11 @@ export const action = async ({ request, params }) => {
 
     let updatedEntries = {};
     for (key in formData) {
-      if (
-        key === "title" ||
-        key === "startsAt" ||
-        key === "endsAt"
-      ) {
+      if (key === "title" || key === "startsAt" || key === "endsAt") {
         if (formData[key] !== discount[key]) {
           updatedEntries[key] = formData[key];
-        }else {
-          updatedEntries[key] = discount[key]
+        } else {
+          updatedEntries[key] = discount[key];
         }
       }
     }
@@ -110,7 +107,6 @@ export const action = async ({ request, params }) => {
       }
     );
     const discountMetafield = await getDiscountMetafield.json();
-
 
     const getDiscountUpdate = await admin.graphql(
       `#graphql
@@ -161,7 +157,8 @@ export const action = async ({ request, params }) => {
       {
         variables: {
           discount_id: shopify_discountId,
-          metafield_id: discountMetafield.data.automaticDiscountNode.metafield.id,
+          metafield_id:
+            discountMetafield.data.automaticDiscountNode.metafield.id,
           metafield_data: JSON.stringify(metafieldData),
           title: updatedEntries.title,
           startsAt: updatedEntries.startsAt,
@@ -170,10 +167,11 @@ export const action = async ({ request, params }) => {
       }
     );
     const discountUpdated = await getDiscountUpdate.json();
-    console.log(discountUpdated)
+    console.log(discountUpdated);
 
     if (discountUpdated.data.discountAutomaticAppUpdate.userErrors.length < 1) {
-      formData.status = discountUpdated.data.discountAutomaticAppUpdate.automaticAppDiscount.status
+      formData.status =
+        discountUpdated.data.discountAutomaticAppUpdate.automaticAppDiscount.status;
 
       await prisma.discounts.update({
         where: {
