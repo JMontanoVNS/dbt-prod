@@ -28,13 +28,6 @@ export function run(input) {
    *   fixedAmount: number
    * }}
    */
-  const configuration = JSON.parse(
-    input?.discountNode?.metafield?.value ?? "{}"
-  );
-  console.error(configuration);
-  if (!configuration.percentage && !configuration.fixedAmount) {
-    return EMPTY_DISCOUNT;
-  }
 
   return {
     discounts: [],
