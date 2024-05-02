@@ -1,22 +1,30 @@
 query RunInput($tags: [String!]) {
   cart {
+    buyerIdentity {
+      customer {
+        hasAnyTag(tags: $tags)
+      }
+    }
     lines {
       quantity
       merchandise {
         __typename
-        ...on ProductVariant {
-            id
-            title
-            product {
-              handle
-              hasAnyTag(tags: $tags)
-            }
+        ... on ProductVariant {
+          id
+          title
+          product {
+            handle
+            hasAnyTag(tags: $tags)
+          }
         }
       }
     }
   }
   discountNode {
-    metafield(namespace: "product-discount-by-tags", key: "function-configuration"){
+    metafield(
+      namespace: "product-discount-by-tags"
+      key: "function-configuration"
+    ) {
       value
     }
   }
