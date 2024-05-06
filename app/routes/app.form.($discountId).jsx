@@ -60,9 +60,8 @@ export const action = async ({ request, params }) => {
 
   let metafieldData = {
     [formData.discountType]: formData.amount.toString(),
-    tags: formData.customerTags
-      .split(",")
-      .concat(formData.productTags.split(",")),
+    customerTags: formData.customerTags.split(","),
+    productTags: formData.productTags.split(","),
   };
 
   // start - update discount
