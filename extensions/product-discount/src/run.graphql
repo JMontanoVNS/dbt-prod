@@ -1,8 +1,8 @@
-query RunInput($tags: [String!]) {
+query RunInput {
   cart {
     buyerIdentity {
       customer {
-        hasAnyTag(tags: $tags)
+        firstName
       }
     }
     lines {
@@ -14,18 +14,9 @@ query RunInput($tags: [String!]) {
           title
           product {
             handle
-            hasAnyTag(tags: $tags)
           }
         }
       }
-    }
-  }
-  discountNode {
-    metafield(
-      namespace: "product-discount-by-tags"
-      key: "function-configuration"
-    ) {
-      value
     }
   }
 }
