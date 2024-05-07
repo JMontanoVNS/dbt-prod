@@ -3,26 +3,21 @@ generator client {
 }
 
 datasource db {
-  provider = "postgres"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
 }
 
 model discounts {
-  id           Int              @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   amount       Float
   customerTags String?
   productTags  String?
   status       String
-  discountType discountTypeEnum @default(percentage)
+  discountType String
   discountId   String
   endsAt       DateTime
   startsAt     DateTime
   title        String
-}
-
-enum discountTypeEnum {
-  percentage
-  fixedAmount
 }
 
 model session {

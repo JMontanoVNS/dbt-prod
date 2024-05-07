@@ -20,12 +20,7 @@ export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const shopifyFunction = await prisma.shopifyFunction.findMany();
 
-  console.log("ShopifyFunction -->");
-  console.log(shopifyFunction[0]);
-
   if (Object.keys(shopifyFunction).length < 1) {
-    console.log("Message inside validation...");
-
     let response = await admin.graphql(
       `#graphql
       query {

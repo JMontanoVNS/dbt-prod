@@ -166,7 +166,6 @@ export const action = async ({ request, params }) => {
       }
     );
     const discountUpdated = await getDiscountUpdate.json();
-    console.log(discountUpdated);
 
     if (discountUpdated.data.discountAutomaticAppUpdate.userErrors.length < 1) {
       formData.status =
@@ -248,7 +247,6 @@ export const action = async ({ request, params }) => {
     });
   }
 
-  console.log(data.discountAutomaticAppCreate.userErrors);
   return redirect("/app/discounts");
   // end - create discount
 };
