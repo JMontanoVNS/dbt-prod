@@ -3,7 +3,7 @@
 client_id = "41e4a06325f5e4fcec5dfdd3a8878451"
 name = "discount-by-tags-qa"
 handle = "discount-by-tags-qa"
-application_url = "https://producing-plc-classical-smallest.trycloudflare.com"
+application_url = "https://latest-katrina-attractive-covering.trycloudflare.com"
 embedded = true
 
 [build]
@@ -13,13 +13,13 @@ include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_discounts,write_discounts,write_products"
+scopes = "read_discounts,read_orders,write_discounts,write_orders,write_products"
 
 [auth]
 redirect_urls = [
-  "https://producing-plc-classical-smallest.trycloudflare.com/auth/callback",
-  "https://producing-plc-classical-smallest.trycloudflare.com/auth/shopify/callback",
-  "https://producing-plc-classical-smallest.trycloudflare.com/api/auth/callback"
+  "https://latest-katrina-attractive-covering.trycloudflare.com/auth/callback",
+  "https://latest-katrina-attractive-covering.trycloudflare.com/auth/shopify/callback",
+  "https://latest-katrina-attractive-covering.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

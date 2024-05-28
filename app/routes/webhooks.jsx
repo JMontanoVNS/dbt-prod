@@ -6,10 +6,10 @@ export const action = async ({ request }) => {
     request
   );
 
-  if (!admin) {
-    // The admin context isn't returned if the webhook fired after a shop was uninstalled.
-    throw new Response();
-  }
+  // if (!admin) {
+  //   // The admin context isn't returned if the webhook fired after a shop was uninstalled.
+  //   throw new Response();
+  // }
 
   switch (topic) {
     case "APP_UNINSTALLED":
@@ -21,6 +21,10 @@ export const action = async ({ request }) => {
     case "CUSTOMERS_DATA_REQUEST":
     case "CUSTOMERS_REDACT":
     case "SHOP_REDACT":
+    case "ORDERS_PAID":
+      console.log("Order paid webhook");
+      console.log(payload);
+      break;
     default:
       throw new Response("Unhandled webhook topic", { status: 404 });
   }
