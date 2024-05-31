@@ -3,7 +3,7 @@
 client_id = "41e4a06325f5e4fcec5dfdd3a8878451"
 name = "discount-by-tags-qa"
 handle = "discount-by-tags-qa"
-application_url = "https://latest-katrina-attractive-covering.trycloudflare.com"
+application_url = "https://ep-joan-cables-sonic.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_discounts,read_orders,write_discounts,write_orders,write_products
 
 [auth]
 redirect_urls = [
-  "https://latest-katrina-attractive-covering.trycloudflare.com/auth/callback",
-  "https://latest-katrina-attractive-covering.trycloudflare.com/auth/shopify/callback",
-  "https://latest-katrina-attractive-covering.trycloudflare.com/api/auth/callback"
+  "https://ep-joan-cables-sonic.trycloudflare.com/auth/callback",
+  "https://ep-joan-cables-sonic.trycloudflare.com/auth/shopify/callback",
+  "https://ep-joan-cables-sonic.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

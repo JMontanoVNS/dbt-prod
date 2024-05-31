@@ -416,6 +416,7 @@ export default function Discounts() {
         loading: false,
       }}
     >
+      <ui-title-bar title="Discounts By Tags - Discounts"></ui-title-bar>
       <Card padding="0">
         <IndexFilters
           sortOptions={sortOptions}

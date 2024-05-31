@@ -41,3 +41,14 @@ model shopifyFunction {
   title    String
   api_type String
 }
+
+model orders {
+  id               Int      @id @default(autoincrement())
+  store            String
+  discount_code_id Int
+  discount_code    String
+  date             DateTime
+  order_id         BigInt
+  order_total      Float
+  discount_total   Float
+}
