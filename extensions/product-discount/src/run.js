@@ -26,7 +26,8 @@ export function run(input) {
   /**
    * @type {{
    *   percentage: number,
-   *   fixedAmount: number
+   *   fixedAmount: number,
+   *   conditional: string
    * }}
    */
   const configuration = JSON.parse(
@@ -37,8 +38,6 @@ export function run(input) {
   }
 
   let targets;
-
-  console.error(configuration.conditional)
 
   if(configuration.conditional === 'OR') {
     if (input.cart.buyerIdentity?.customer?.hasAnyTag) {
@@ -89,7 +88,7 @@ export function run(input) {
   }
 
 
-  if (!targets.length) {
+  if (!targets) {
     console.error("No cart lines qualify for volume discount.");
     return EMPTY_DISCOUNT;
   }
