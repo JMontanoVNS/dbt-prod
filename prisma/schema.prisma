@@ -8,21 +8,27 @@ datasource db {
 }
 
 model discounts {
-  id           Int              @id @default(autoincrement())
+  id           Int                     @id @default(autoincrement())
   amount       Float
   customerTags String?
   productTags  String?
   status       String
-  discountType discountTypeEnum @default(percentage)
+  discountType discountTypeEnum        @default(percentage)
   discountId   String
   endsAt       DateTime
   startsAt     DateTime
   title        String
+  conditional  discountConditionalEnum @default(OR)
 }
 
 enum discountTypeEnum {
   percentage
   fixedAmount
+}
+
+enum discountConditionalEnum {
+  OR
+  AND
 }
 
 model session {

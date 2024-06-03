@@ -3,7 +3,7 @@
 client_id = "41e4a06325f5e4fcec5dfdd3a8878451"
 name = "discount-by-tags-qa"
 handle = "discount-by-tags-qa"
-application_url = "https://beijing-mortgage-mercury-like.trycloudflare.com"
+application_url = "https://i-obvious-am-paperbacks.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_discounts,read_orders,write_discounts,write_orders,write_products
 
 [auth]
 redirect_urls = [
-  "https://beijing-mortgage-mercury-like.trycloudflare.com/auth/callback",
-  "https://beijing-mortgage-mercury-like.trycloudflare.com/auth/shopify/callback",
-  "https://beijing-mortgage-mercury-like.trycloudflare.com/api/auth/callback"
+  "https://i-obvious-am-paperbacks.trycloudflare.com/auth/callback",
+  "https://i-obvious-am-paperbacks.trycloudflare.com/auth/shopify/callback",
+  "https://i-obvious-am-paperbacks.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
