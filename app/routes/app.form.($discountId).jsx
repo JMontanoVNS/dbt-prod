@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   Card,
-  Checkbox,
   ChoiceList,
   DatePicker,
   Form,
@@ -727,7 +726,7 @@ export default function DiscountsForm() {
                       md: "max-content max-content",
                     }}
                     gap={0}
-                    ref={datePickerRef}
+                    // ref={datePickerRef}
                   >
                     <Box
                       maxWidth={mdDown ? "516px" : "212px"}

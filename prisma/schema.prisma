@@ -49,12 +49,13 @@ model shopifyFunction {
 }
 
 model orders {
-  id               Int      @id @default(autoincrement())
-  store            String
-  discount_code_id Int
-  discount_code    String
-  date             DateTime
-  order_id         BigInt
-  order_total      Float
-  discount_total   Float
+  id             Int      @id @default(autoincrement())
+  order_id       String
+  order_total    String
+  discount_total String
+  line_items     Json
+  date           DateTime
+  // store            String
+  // discount_code_id Int
+  // discount_code    String
 }
