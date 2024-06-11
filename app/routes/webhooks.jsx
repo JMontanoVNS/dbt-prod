@@ -28,6 +28,7 @@ export const action = async ({ request }) => {
         created_at,
         discount_applications,
       } = payload;
+      const discountsDB = await prisma.discounts.findMany();
       let orderData = {};
       orderData.line_items = [];
 
@@ -36,7 +37,14 @@ export const action = async ({ request }) => {
         discountData.applied_discounts = [];
 
         item.discount_allocations.forEach((discount) => {
+          let discountDB = discountsDB.filter(
+            (item) =>
+              item.title ===
+              discount_applications[discount.discount_application_index]?.title
+          );
+
           discountData.applied_discounts.push({
+            discount_id: discountDB[0].discountId,
             discount_title:
               discount_applications[discount.discount_application_index]?.title,
             discount_amount: discount.amount,
@@ -46,7 +54,7 @@ export const action = async ({ request }) => {
         discountData.item_id = item.admin_graphql_api_id;
         discountData.name = item.name;
         discountData.item_price = item.price;
-        discountData.item_quantiy = item.item_quantiy;
+        discountData.item_quantiy = item.quantity;
 
         orderData.line_items.push(discountData);
       });
