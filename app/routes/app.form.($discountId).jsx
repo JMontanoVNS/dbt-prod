@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   Card,
-  Checkbox,
   ChoiceList,
   DatePicker,
   Form,
@@ -62,6 +61,7 @@ export const action = async ({ request, params }) => {
     [formData.discountType]: formData.amount.toString(),
     customerTags: formData.customerTags.split(","),
     productTags: formData.productTags.split(","),
+    conditional: formData.conditional,
   };
 
   // start - update discount
@@ -263,6 +263,7 @@ export default function DiscountsForm() {
     productTags: loaderData?.discount.productTags?.split(",") ?? [],
     startsAt: loaderData?.discount.startsAt ?? "",
     endsAt: loaderData?.discount.endsAt ?? "",
+    conditional: loaderData?.discount.conditional ?? "OR",
   });
 
   const handleSubmit = () => {
@@ -284,6 +285,37 @@ export default function DiscountsForm() {
 
   {
     /* ------------------- Discount type end ------------------- */
+  }
+
+  {
+    /* ------------------- Discount Conditional end ------------------- */
+  }
+
+  const [discountConditional, setDiscountConditional] = useState(
+    form.conditional
+  );
+  const handleDiscountConditional = (value) => {
+    setDiscountConditional(value[0]);
+    setForm((prevForm) => ({ ...prevForm, conditional: value[0] }));
+  };
+
+  const discountConditionalOptions = [
+    {
+      label: "OR",
+      value: "OR",
+      helpText:
+        "The customer OR the product must have ANY of the tags from the list.",
+    },
+    {
+      label: "AND",
+      value: "AND",
+      helpText:
+        "The customer AND the product must have ANY of the tags from the list.",
+    },
+  ];
+
+  {
+    /* ------------------- Discount Conditional end ------------------- */
   }
 
   {
@@ -644,7 +676,15 @@ export default function DiscountsForm() {
                 onChange={handleCustomerTagInput}
               ></TextField>
             </div>
-            <InlineStack gap="500">{customerTagMarkup}</InlineStack>
+            <InlineStack gap="100">{customerTagMarkup}</InlineStack>
+
+            {/* Conditional input */}
+            <ChoiceList
+              title="While the customer is checking out"
+              choices={discountConditionalOptions}
+              selected={discountConditional}
+              onChange={handleDiscountConditional}
+            />
 
             {/* Product tags input */}
             <div onKeyDown={productKeyPress}>
@@ -686,7 +726,7 @@ export default function DiscountsForm() {
                       md: "max-content max-content",
                     }}
                     gap={0}
-                    ref={datePickerRef}
+                    // ref={datePickerRef}
                   >
                     <Box
                       maxWidth={mdDown ? "516px" : "212px"}

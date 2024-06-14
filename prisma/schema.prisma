@@ -8,21 +8,27 @@ datasource db {
 }
 
 model discounts {
-  id           Int              @id @default(autoincrement())
+  id           Int                     @id @default(autoincrement())
   amount       Float
   customerTags String?
   productTags  String?
   status       String
-  discountType discountTypeEnum @default(percentage)
+  discountType discountTypeEnum        @default(percentage)
   discountId   String
   endsAt       DateTime
   startsAt     DateTime
   title        String
+  conditional  discountConditionalEnum @default(OR)
 }
 
 enum discountTypeEnum {
   percentage
   fixedAmount
+}
+
+enum discountConditionalEnum {
+  OR
+  AND
 }
 
 model session {
@@ -40,4 +46,16 @@ model shopifyFunction {
   id       String @id
   title    String
   api_type String
+}
+
+model orders {
+  id             Int      @id @default(autoincrement())
+  order_id       String
+  order_total    String
+  discount_total String
+  line_items     Json
+  date           DateTime
+  // store            String
+  // discount_code_id Int
+  // discount_code    String
 }

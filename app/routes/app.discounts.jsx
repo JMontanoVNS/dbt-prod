@@ -115,6 +115,7 @@ export default function Discounts() {
         discountType,
         customerTags,
         productTags,
+        conditional,
       },
       index
     ) => (
@@ -145,6 +146,7 @@ export default function Discounts() {
           </Badge>
         </IndexTable.Cell>
         <IndexTable.Cell>{discountType}</IndexTable.Cell>
+        <IndexTable.Cell>{conditional}</IndexTable.Cell>
         <IndexTable.Cell>
           {new Date(startsAt).toLocaleDateString()}
         </IndexTable.Cell>
@@ -154,14 +156,18 @@ export default function Discounts() {
         <IndexTable.Cell>
           <InlineStack gap="100">
             {customerTags
-              ? customerTags?.split(",").map((tag) => <Badge>{tag}</Badge>)
+              ? customerTags
+                  ?.split(",")
+                  .map((tag, index) => <Badge key={index}>{tag}</Badge>)
               : "No tags available"}
           </InlineStack>
         </IndexTable.Cell>
         <IndexTable.Cell>
           <InlineStack gap="100">
             {productTags
-              ? productTags?.split(",").map((tag) => <Badge>{tag}</Badge>)
+              ? productTags
+                  ?.split(",")
+                  .map((tag, index) => <Badge key={index}>{tag}</Badge>)
               : "No tags available"}
           </InlineStack>
         </IndexTable.Cell>
@@ -416,6 +422,7 @@ export default function Discounts() {
         loading: false,
       }}
     >
+      <ui-title-bar title="Discounts By Tags - Discounts"></ui-title-bar>
       <Card padding="0">
         <IndexFilters
           sortOptions={sortOptions}
@@ -466,6 +473,7 @@ export default function Discounts() {
             { title: "Amount" },
             { title: "Status" },
             { title: "Type" },
+            { title: "Conditional" },
             { title: "Start Date" },
             { title: "End Date" },
             { title: "Customer Tags" },

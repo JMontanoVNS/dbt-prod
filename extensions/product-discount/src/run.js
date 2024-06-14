@@ -26,7 +26,8 @@ export function run(input) {
   /**
    * @type {{
    *   percentage: number,
-   *   fixedAmount: number
+   *   fixedAmount: number,
+   *   conditional: string
    * }}
    */
   const configuration = JSON.parse(
@@ -35,29 +36,12 @@ export function run(input) {
   if (!configuration.percentage && !configuration.fixedAmount) {
     return EMPTY_DISCOUNT;
   }
-  // console.error("this is the input ->");
-  // console.error(JSON.stringify(input));
 
   let targets;
 
-  if (input.cart.buyerIdentity?.customer?.hasAnyTag) {
-    targets = input.cart.lines.map((line) => {
-      const variant = /** @type {ProductVariant} */ (line.merchandise);
-      return /** @type {Target} */ ({
-        productVariant: {
-          id: variant.id,
-        },
-      });
-    });
-  } else {
-    targets = input.cart.lines
-      .filter((line) => {
-        if (line.merchandise.__typename == "ProductVariant") {
-          let hasTags = line.merchandise.product.hasAnyTag;
-          return hasTags === true;
-        }
-      })
-      .map((line) => {
+  if(configuration.conditional === 'OR') {
+    if (input.cart.buyerIdentity?.customer?.hasAnyTag) {
+      targets = input.cart.lines.map((line) => {
         const variant = /** @type {ProductVariant} */ (line.merchandise);
         return /** @type {Target} */ ({
           productVariant: {
@@ -65,9 +49,46 @@ export function run(input) {
           },
         });
       });
+    } else {
+      targets = input.cart.lines
+        .filter((line) => {
+          if (line.merchandise.__typename == "ProductVariant") {
+            let hasTags = line.merchandise.product.hasAnyTag;
+            return hasTags === true;
+          }
+        })
+        .map((line) => {
+          const variant = /** @type {ProductVariant} */ (line.merchandise);
+          return /** @type {Target} */ ({
+            productVariant: {
+              id: variant.id,
+            },
+          });
+        });
+    }
   }
 
-  if (!targets.length) {
+  if(configuration.conditional === 'AND') {
+    targets = input.cart.lines
+        .filter((line) => {
+          if (line.merchandise.__typename == "ProductVariant") {
+            let hasTags = line.merchandise.product.hasAnyTag;
+            if(hasTags && input.cart.buyerIdentity?.customer?.hasAnyTag)
+            return hasTags === true;
+          }
+        })
+        .map((line) => {
+          const variant = /** @type {ProductVariant} */ (line.merchandise);
+          return /** @type {Target} */ ({
+            productVariant: {
+              id: variant.id,
+            },
+          });
+        });
+  }
+
+
+  if (!targets) {
     console.error("No cart lines qualify for volume discount.");
     return EMPTY_DISCOUNT;
   }
