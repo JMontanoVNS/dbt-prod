@@ -135,7 +135,7 @@ export default function Discounts() {
         </IndexTable.Cell>
         <IndexTable.Cell>
           <Text fontWeight="bold" as="span">
-            {`$${amount}`}
+            {discountType === "fixedAmount" ? `$${amount}` : `${amount}%`}
           </Text>
         </IndexTable.Cell>
         <IndexTable.Cell>
@@ -398,6 +398,7 @@ export default function Discounts() {
 
   const promotedBulkActions = [
     {
+      destructive: true,
       content: "Delete Discounts",
       onAction: () => toggleModal(),
     },
@@ -493,6 +494,7 @@ export default function Discounts() {
             onClose={toggleModal}
             title={`Remove ${selectedResources.length} Discounts?`}
             primaryAction={{
+              destructive: true,
               content: "Delete Discounts",
               onAction: handleDelete,
             }}

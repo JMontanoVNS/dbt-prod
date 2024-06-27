@@ -40,13 +40,13 @@ export const action = async ({ request }) => {
           let discountDB = discountsDB.filter(
             (item) =>
               item.title ===
-              discount_applications[discount.discount_application_index]?.title
+              discount_applications[discount.discount_application_index].title
           );
 
           discountData.applied_discounts.push({
             discount_id: discountDB[0].discountId,
             discount_title:
-              discount_applications[discount.discount_application_index]?.title,
+              discount_applications[discount.discount_application_index].title,
             discount_amount: discount.amount,
           });
         });
@@ -59,6 +59,7 @@ export const action = async ({ request }) => {
         orderData.line_items.push(discountData);
       });
 
+      orderData.shop = shop;
       orderData.order_id = admin_graphql_api_id;
       orderData.order_total = total_line_items_price;
       orderData.discount_total = total_discounts;
@@ -70,9 +71,6 @@ export const action = async ({ request }) => {
 
       break;
     case "ORDERS_UPDATED":
-      // console.log("***** Order UPDATE webhook *****");
-      // console.log(payload);
-
       break;
     default:
       throw new Response("Unhandled webhook topic", { status: 404 });

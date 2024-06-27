@@ -16,6 +16,7 @@ import {
   Scrollable,
   Select,
   Tag,
+  Text,
   TextField,
   useBreakpoints,
 } from "@shopify/polaris";
@@ -28,6 +29,7 @@ import prisma from "../db.server";
 
 export const loader = async ({ request, params }) => {
   await authenticate.admin(request);
+  let loaderResponse = {};
   if (Object.keys(params).length > 0) {
     const discountId = Number(params.discountId);
     const discount = await prisma.discounts.findUnique({
@@ -35,8 +37,22 @@ export const loader = async ({ request, params }) => {
         id: discountId,
       },
     });
+    loaderResponse.discount = discount;
 
-    return json({ discount });
+    const getAllOrders = await prisma.orders.findMany();
+    let discountHasOrder = false;
+    getAllOrders.forEach((order) => {
+      order.line_items.forEach((line_item) => {
+        line_item.applied_discounts.forEach((applied_discount) => {
+          if (applied_discount.discount_id === discount.discountId) {
+            return (discountHasOrder = true);
+          }
+        });
+      });
+    });
+    loaderResponse.discountHasOrder = discountHasOrder;
+
+    return loaderResponse;
   }
 
   return null;
@@ -55,37 +71,49 @@ export const action = async ({ request, params }) => {
   formData.startsAt = new Date(formData.startsAt);
   formData.endsAt = new Date(formData.endsAt);
   formData.productTags =
-    formData.productTags.length < 0 ? null : formData.productTags;
+    formData.productTags.length < 1 ? null : formData.productTags;
+  formData.customerTags =
+    formData.customerTags.length < 1 ? null : formData.customerTags;
 
   let metafieldData = {
     [formData.discountType]: formData.amount.toString(),
-    customerTags: formData.customerTags.split(","),
-    productTags: formData.productTags.split(","),
+    customerTags: formData.customerTags?.split(","),
+    productTags: formData.productTags?.split(","),
     conditional: formData.conditional,
   };
 
-  // start - update discount
-  if (Object.keys(params).length > 0) {
-    const discount = await prisma.discounts.findUnique({
-      where: {
-        id: discountId,
-      },
-    });
-    const shopify_discountId = discount.discountId;
+  getAllDiscounts = await prisma.discounts.findMany();
+  const discountExists = getAllDiscounts.filter(
+    (discount) => discount.title === formData.title
+  );
 
-    let updatedEntries = {};
-    for (key in formData) {
-      if (key === "title" || key === "startsAt" || key === "endsAt") {
-        if (formData[key] !== discount[key]) {
-          updatedEntries[key] = formData[key];
-        } else {
-          updatedEntries[key] = discount[key];
+  if (
+    discountExists.length < 1 ||
+    (discountExists.length > 0 && discountExists[0].id === discountId)
+  ) {
+    // start - update discount
+    if (Object.keys(params).length > 0) {
+      const discount = await prisma.discounts.findUnique({
+        where: {
+          id: discountId,
+        },
+      });
+      const shopify_discountId = discount.discountId;
+
+      let updatedEntries = {};
+      for (key in formData) {
+        if (key === "title" || key === "startsAt" || key === "endsAt") {
+          if (formData[key] !== discount[key]) {
+            updatedEntries[key] = formData[key];
+          } else {
+            updatedEntries[key] = discount[key];
+          }
         }
       }
-    }
 
-    const getDiscountMetafield = await admin.graphql(
-      `#graphql
+      const discountMetafield = await admin
+        .graphql(
+          `#graphql
       query automaticDiscountNode($id: ID!){
         automaticDiscountNode(id: $id) {
           ... on DiscountAutomaticNode {
@@ -99,16 +127,17 @@ export const action = async ({ request, params }) => {
           }
         }
       }`,
-      {
-        variables: {
-          id: shopify_discountId,
-        },
-      }
-    );
-    const discountMetafield = await getDiscountMetafield.json();
+          {
+            variables: {
+              id: shopify_discountId,
+            },
+          }
+        )
+        .then((res) => res.json());
 
-    const getDiscountUpdate = await admin.graphql(
-      `#graphql
+      const discountUpdate = await admin
+        .graphql(
+          `#graphql
       mutation discountAutomaticAppUpdate(
         $discount_id: ID!,
         $metafield_id: ID!,
@@ -153,101 +182,140 @@ export const action = async ({ request, params }) => {
           }
         }
       }`,
-      {
-        variables: {
-          discount_id: shopify_discountId,
-          metafield_id:
-            discountMetafield.data.automaticDiscountNode.metafield.id,
-          metafield_data: JSON.stringify(metafieldData),
-          title: updatedEntries.title,
-          startsAt: updatedEntries.startsAt,
-          endsAt: updatedEntries.endsAt,
-        },
+          {
+            variables: {
+              discount_id: shopify_discountId,
+              metafield_id:
+                discountMetafield.data.automaticDiscountNode.metafield.id,
+              metafield_data: JSON.stringify(metafieldData),
+              title: updatedEntries.title,
+              startsAt: updatedEntries.startsAt,
+              endsAt: updatedEntries.endsAt,
+            },
+          }
+        )
+        .then((res) => res.json());
+
+      if (
+        discountUpdate.data.discountAutomaticAppUpdate.userErrors.length < 1
+      ) {
+        formData.status =
+          discountUpdate.data.discountAutomaticAppUpdate.automaticAppDiscount.status;
+
+        await prisma.discounts.update({
+          where: {
+            id: discountId,
+          },
+          data: formData,
+        });
+
+        return redirect("/app/discounts");
       }
-    );
-    const discountUpdated = await getDiscountUpdate.json();
+    }
+    // end - update discount
 
-    if (discountUpdated.data.discountAutomaticAppUpdate.userErrors.length < 1) {
+    // start - create discount
+    const discountAutomaticAppCreate = await admin
+      .graphql(
+        `#graphql
+    mutation discountAutomaticAppCreate($automaticAppDiscount: DiscountAutomaticAppInput!) {
+      discountAutomaticAppCreate(automaticAppDiscount: $automaticAppDiscount) {
+        userErrors {
+          field
+          message
+        }
+        automaticAppDiscount {
+          discountId
+          title
+          startsAt
+          endsAt
+          status
+          appDiscountType {
+            appKey
+            functionId
+          }
+          combinesWith {
+            orderDiscounts
+            productDiscounts
+            shippingDiscounts
+          }
+        }
+      }
+    }`,
+        {
+          variables: {
+            automaticAppDiscount: {
+              functionId: shopifyFunction.id,
+              title: formData.title,
+              startsAt: formData.startsAt,
+              endsAt: formData.endsAt,
+              combinesWith: {
+                orderDiscounts: true,
+                productDiscounts: true,
+                shippingDiscounts: true,
+              },
+              metafields: [
+                {
+                  namespace: "product-discount-by-tags",
+                  key: "function-configuration",
+                  type: "json",
+                  value: JSON.stringify(metafieldData),
+                },
+              ],
+            },
+          },
+        }
+      )
+      .then((res) => res.json());
+
+    if (
+      !discountAutomaticAppCreate.data.discountAutomaticAppCreate.userErrors[0]
+    ) {
+      formData.discountId =
+        discountAutomaticAppCreate.data.discountAutomaticAppCreate.automaticAppDiscount.discountId;
       formData.status =
-        discountUpdated.data.discountAutomaticAppUpdate.automaticAppDiscount.status;
+        discountAutomaticAppCreate.data.discountAutomaticAppCreate.automaticAppDiscount.status;
 
-      await prisma.discounts.update({
-        where: {
-          id: discountId,
-        },
+      const storeDiscount = await prisma.discounts.create({
         data: formData,
       });
 
-      return redirect("/app/discounts");
-    }
-  }
-  // end - update discount
-
-  // start - create discount
-  const response = await admin.graphql(
-    `#graphql
-  mutation discountAutomaticAppCreate($automaticAppDiscount: DiscountAutomaticAppInput!) {
-    discountAutomaticAppCreate(automaticAppDiscount: $automaticAppDiscount) {
-      userErrors {
-        field
-        message
-      }
-      automaticAppDiscount {
-        discountId
-        title
-        startsAt
-        endsAt
-        status
-        appDiscountType {
-          appKey
-          functionId
-        }
-        combinesWith {
-          orderDiscounts
-          productDiscounts
-          shippingDiscounts
-        }
-      }
-    }
-  }`,
-    {
-      variables: {
-        automaticAppDiscount: {
-          functionId: shopifyFunction.id,
-          title: formData.title,
-          startsAt: formData.startsAt,
-          endsAt: formData.endsAt,
-          combinesWith: {
-            orderDiscounts: true,
-            productDiscounts: true,
-            shippingDiscounts: true,
-          },
-          metafields: [
+      if (storeDiscount) {
+        return redirect("/app/discounts");
+      } else {
+        const discountAutomaticDelete = await admin
+          .graphql(
+            `#graphql
+          mutation discountAutomaticDelete($id: ID!) {
+            discountAutomaticDelete(id: $id) {
+              deletedAutomaticDiscountId
+              userErrors {
+                field
+                code
+                message
+              }
+            }
+          }`,
             {
-              namespace: "product-discount-by-tags",
-              key: "function-configuration",
-              type: "json",
-              value: JSON.stringify(metafieldData),
-            },
-          ],
-        },
-      },
+              variables: {
+                id: "gid://shopify/DiscountAutomaticNode/198286294",
+              },
+            }
+          )
+          .then((res) => res.json());
+
+        console.log("Error storing the discount in the DB");
+        return json({ message: "Error storing the discount in the DB" });
+      }
+    } else {
+      console.log("Error creating the discount in Shopify");
+      return json({ message: "Error creating the discount in Shopify" });
     }
-  );
-
-  const { data } = await response.json();
-  if (data.discountAutomaticAppCreate.automaticAppDiscount?.discountId) {
-    formData.discountId =
-      data.discountAutomaticAppCreate.automaticAppDiscount.discountId;
-    formData.status =
-      data.discountAutomaticAppCreate.automaticAppDiscount.status;
-
-    await prisma.discounts.create({
-      data: formData,
-    });
+  } else {
+    console.log("Discount name already exists");
+    return json({ message: "Discount name already exists" });
   }
 
-  return redirect("/app/discounts");
   // end - create discount
 };
 
@@ -650,11 +718,18 @@ export default function DiscountsForm() {
             <TextField
               label="Title"
               value={form.title}
+              disabled={loaderData?.discountHasOrder}
               onChange={(event) =>
                 setForm((prevForm) => ({ ...prevForm, title: event }))
               }
               autoComplete="off"
             />
+            {loaderData?.discountHasOrder ? (
+              <Text as="span" tone="disabled" variant="bodySm">
+                The name cannot be changed because there is already an order
+                associated with this discount.
+              </Text>
+            ) : null}
 
             {/* Amount input */}
             <TextField
@@ -667,37 +742,18 @@ export default function DiscountsForm() {
               autoComplete="off"
             />
 
-            {/* Customer tags input */}
-            <div onKeyDown={customerKeyPress}>
-              <TextField
-                label="Customer Tags"
-                value={customerTagInput}
-                autoComplete="off"
-                onChange={handleCustomerTagInput}
-              ></TextField>
-            </div>
-            <InlineStack gap="100">{customerTagMarkup}</InlineStack>
-
-            {/* Conditional input */}
+            {/* Discount type input */}
             <ChoiceList
-              title="While the customer is checking out"
-              choices={discountConditionalOptions}
-              selected={discountConditional}
-              onChange={handleDiscountConditional}
+              title="Discount type"
+              choices={[
+                { label: "Percentage", value: "percentage" },
+                { label: "Fixed Amount", value: "fixedAmount" },
+              ]}
+              selected={selectedDiscountType}
+              onChange={handleDiscountType}
             />
 
-            {/* Product tags input */}
-            <div onKeyDown={productKeyPress}>
-              <TextField
-                label="Product Tags"
-                value={productTagInput}
-                autoComplete="off"
-                onChange={handleProductTagInput}
-              ></TextField>
-            </div>
-            <InlineStack gap="100">{productTagMarkup}</InlineStack>
-
-            {/* Start date input */}
+            {/* Date input */}
             <InlineStack gap="400" blockAlign="start">
               <Popover
                 active={popoverActive}
@@ -834,20 +890,41 @@ export default function DiscountsForm() {
               </Popover>
             </InlineStack>
 
-            {/* Start Discount type input */}
+            {/* Customer tags input */}
+            <div onKeyDown={customerKeyPress}>
+              <TextField
+                label="Customer Tags"
+                value={customerTagInput}
+                autoComplete="off"
+                onChange={handleCustomerTagInput}
+              ></TextField>
+            </div>
+            <InlineStack gap="100">{customerTagMarkup}</InlineStack>
+
+            {/* Product tags input */}
+            <div onKeyDown={productKeyPress}>
+              <TextField
+                label="Product Tags"
+                value={productTagInput}
+                autoComplete="off"
+                onChange={handleProductTagInput}
+              ></TextField>
+            </div>
+            <InlineStack gap="100">{productTagMarkup}</InlineStack>
+
+            {/* Conditional input */}
             <ChoiceList
-              title="Discount type"
-              choices={[
-                { label: "Percentage", value: "percentage" },
-                { label: "Fixed Amount", value: "fixedAmount" },
-              ]}
-              selected={selectedDiscountType}
-              onChange={handleDiscountType}
+              title="Condition for the discount to be applied"
+              choices={discountConditionalOptions}
+              selected={discountConditional}
+              onChange={handleDiscountConditional}
             />
 
-            <Button submit variant="primary">
-              Submit
-            </Button>
+            <InlineStack align="end">
+              <Button submit variant="primary">
+                Submit
+              </Button>
+            </InlineStack>
           </FormLayout>
         </Form>
       </Card>

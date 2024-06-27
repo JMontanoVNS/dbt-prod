@@ -259,19 +259,7 @@ export default function ({ orders }) {
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
     useIndexResourceState(products);
   const rowMarkup = orders.map(
-    (
-      {
-        id,
-        date,
-        store,
-        order_total,
-        discount_code,
-        discount_total,
-        discount_code_id,
-        order_id,
-      },
-      index
-    ) => (
+    ({ id, date, shop, order_total, discount_total, order_id }, index) => (
       <IndexTable.Row
         id={id}
         key={id}
@@ -279,8 +267,8 @@ export default function ({ orders }) {
         position={index}
       >
         <IndexTable.Cell>{`# ${id}`}</IndexTable.Cell>
-        <IndexTable.Cell>{store}</IndexTable.Cell>
-        <IndexTable.Cell>{discount_code}</IndexTable.Cell>
+        <IndexTable.Cell>{shop}</IndexTable.Cell>
+        <IndexTable.Cell>{order_id}</IndexTable.Cell>
         <IndexTable.Cell fontWeight="bold">
           <Text fontWeight="bold" as="span">
             ${order_total}
@@ -333,10 +321,10 @@ export default function ({ orders }) {
         sortable={[false, true, true, true, true, true, true]}
         headings={[
           { title: "ID" },
-          { title: "Store" },
-          { title: "Discount Code" },
+          { title: "Shop" },
+          { title: "Order ID" },
           { title: "Order Total" },
-          { title: "Discount Toal" },
+          { title: "Discount Total" },
           { title: "Date" },
         ]}
       >

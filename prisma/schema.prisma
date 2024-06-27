@@ -55,7 +55,5 @@ model orders {
   discount_total String
   line_items     Json
   date           DateTime
-  // store            String
-  // discount_code_id Int
-  // discount_code    String
+  shop           String
 }
