@@ -4,6 +4,8 @@ import polarisStyles from "@shopify/polaris/build/esm/styles.css";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { authenticate } from "../shopify.server";
+import { NotificationProvider } from "../context/NotificationContext";
+import Notification from "../components/Notification";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -17,16 +19,19 @@ export default function App() {
   const { apiKey } = useLoaderData();
 
   return (
-    <AppProvider isEmbeddedApp apiKey={apiKey}>
-      <ui-nav-menu>
-        <Link to="/app" rel="home">
-          Home
-        </Link>
-        <Link to="/app/discounts">Discounts</Link>
-        {/* <Link to="/app/billing">Billing test</Link> */}
-      </ui-nav-menu>
-      <Outlet />
-    </AppProvider>
+    <NotificationProvider>
+      <AppProvider isEmbeddedApp apiKey={apiKey}>
+        <ui-nav-menu>
+          <Link to="/app" rel="home">
+            Home
+          </Link>
+          <Link to="/app/discounts">Discounts</Link>
+          {/* <Link to="/app/billing">Billing test</Link> */}
+        </ui-nav-menu>
+        <Notification />
+        <Outlet />
+      </AppProvider>
+    </NotificationProvider>
   );
 }
 

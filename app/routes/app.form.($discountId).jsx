@@ -21,25 +21,38 @@ import {
   useBreakpoints,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { CalendarIcon, ArrowRightIcon } from "@shopify/polaris-icons";
-import { useLoaderData, useSubmit } from "@remix-run/react";
+import { useActionData, useLoaderData, useSubmit } from "@remix-run/react";
 import { json, redirect } from "@remix-run/node";
 import prisma from "../db.server";
+import NotificationContext from "../context/NotificationContext";
 
 export const loader = async ({ request, params }) => {
   await authenticate.admin(request);
   let loaderResponse = {};
   if (Object.keys(params).length > 0) {
     const discountId = Number(params.discountId);
-    const discount = await prisma.discounts.findUnique({
-      where: {
-        id: discountId,
-      },
-    });
+    const discount = await prisma.discounts
+      .findUnique({
+        where: {
+          id: discountId,
+        },
+      })
+      .catch((err) => {
+        loaderResponse["notification"] = {
+          error: "Error fetching Discount from the Database",
+        };
+        throw new Error(err);
+      });
     loaderResponse.discount = discount;
 
-    const getAllOrders = await prisma.orders.findMany();
+    const getAllOrders = await prisma.orders.findMany().catch((err) => {
+      loaderResponse["notification"] = {
+        error: "Error fetching Orders from the Database",
+      };
+      throw new Error(err);
+    });
     let discountHasOrder = false;
     getAllOrders.forEach((order) => {
       order.line_items.forEach((line_item) => {
@@ -60,12 +73,20 @@ export const loader = async ({ request, params }) => {
 
 export const action = async ({ request, params }) => {
   const { admin } = await authenticate.admin(request);
+  let actionResponse = {};
 
   const requestData = await request.formData();
   const formData = Object.fromEntries(requestData);
 
   const discountId = Number(params.discountId);
-  const shopifyFunction = await prisma.shopifyFunction.findFirst();
+  const shopifyFunction = await prisma.shopifyFunction
+    .findFirst()
+    .catch((err) => {
+      actionResponse["notification"] = {
+        error: "Error fetching Shopify Function from the Database",
+      };
+      throw new Error(err);
+    });
 
   formData.amount = parseFloat(formData.amount);
   formData.startsAt = new Date(formData.startsAt);
@@ -82,7 +103,12 @@ export const action = async ({ request, params }) => {
     conditional: formData.conditional,
   };
 
-  getAllDiscounts = await prisma.discounts.findMany();
+  getAllDiscounts = await prisma.discounts.findMany().catch((err) => {
+    actionResponse["notification"] = {
+      error: "Error fetching Discounts from the Database",
+    };
+    throw new Error(err);
+  });
   const discountExists = getAllDiscounts.filter(
     (discount) => discount.title === formData.title
   );
@@ -93,11 +119,18 @@ export const action = async ({ request, params }) => {
   ) {
     // start - update discount
     if (Object.keys(params).length > 0) {
-      const discount = await prisma.discounts.findUnique({
-        where: {
-          id: discountId,
-        },
-      });
+      const discount = await prisma.discounts
+        .findUnique({
+          where: {
+            id: discountId,
+          },
+        })
+        .catch((err) => {
+          actionResponse["notification"] = {
+            error: "Error fetching Discount from the Database",
+          };
+          throw new Error(err);
+        });
       const shopify_discountId = discount.discountId;
 
       let updatedEntries = {};
@@ -133,7 +166,13 @@ export const action = async ({ request, params }) => {
             },
           }
         )
-        .then((res) => res.json());
+        .then((res) => res.json())
+        .catch((err) => {
+          actionResponse["notification"] = {
+            error: "Error fetching Discount Metafield from Shopify",
+          };
+          throw new Error(err);
+        });
 
       const discountUpdate = await admin
         .graphql(
@@ -194,7 +233,13 @@ export const action = async ({ request, params }) => {
             },
           }
         )
-        .then((res) => res.json());
+        .then((res) => res.json())
+        .catch((err) => {
+          actionResponse["notification"] = {
+            error: "Error updating Discount in Shopify",
+          };
+          throw new Error(err);
+        });
 
       if (
         discountUpdate.data.discountAutomaticAppUpdate.userErrors.length < 1
@@ -202,14 +247,25 @@ export const action = async ({ request, params }) => {
         formData.status =
           discountUpdate.data.discountAutomaticAppUpdate.automaticAppDiscount.status;
 
-        await prisma.discounts.update({
-          where: {
-            id: discountId,
-          },
-          data: formData,
-        });
+        await prisma.discounts
+          .update({
+            where: {
+              id: discountId,
+            },
+            data: formData,
+          })
+          .catch((err) => {
+            actionResponse["notification"] = {
+              error: "Error updating Discount in the Database",
+            };
+            throw new Error(err);
+          });
 
-        return redirect("/app/discounts");
+        actionResponse["notification"] = {
+          success: "Discount updated successfully",
+        };
+
+        return redirect(`/app/discounts/${JSON.stringify(actionResponse)}`);
       }
     }
     // end - update discount
@@ -266,7 +322,13 @@ export const action = async ({ request, params }) => {
           },
         }
       )
-      .then((res) => res.json());
+      .then((res) => res.json())
+      .catch((err) => {
+        actionResponse["notification"] = {
+          error: "Error creating the Discount in Shopify",
+        };
+        throw new Error(err);
+      });
 
     if (
       !discountAutomaticAppCreate.data.discountAutomaticAppCreate.userErrors[0]
@@ -276,12 +338,23 @@ export const action = async ({ request, params }) => {
       formData.status =
         discountAutomaticAppCreate.data.discountAutomaticAppCreate.automaticAppDiscount.status;
 
-      const storeDiscount = await prisma.discounts.create({
-        data: formData,
-      });
+      const storeDiscount = await prisma.discounts
+        .create({
+          data: formData,
+        })
+        .catch((err) => {
+          actionResponse["notification"] = {
+            error: "Error storing the Discount in the Database",
+          };
+          throw new Error(err);
+        });
 
       if (storeDiscount) {
-        return redirect("/app/discounts");
+        actionResponse["notification"] = {
+          success: "Discount created successfully",
+        };
+
+        return redirect(`/app/discounts/${JSON.stringify(actionResponse)}`);
       } else {
         const discountAutomaticDelete = await admin
           .graphql(
@@ -302,18 +375,30 @@ export const action = async ({ request, params }) => {
               },
             }
           )
-          .then((res) => res.json());
+          .then((res) => res.json())
+          .catch((err) => {
+            actionResponse["notification"] = {
+              error: "Error removing failed Discount creation",
+            };
+            throw new Error(err);
+          });
 
-        console.log("Error storing the discount in the DB");
-        return json({ message: "Error storing the discount in the DB" });
+        actionResponse["notification"] = {
+          error: "Error storing the Discount in the Database",
+        };
+        return actionResponse;
       }
     } else {
-      console.log("Error creating the discount in Shopify");
-      return json({ message: "Error creating the discount in Shopify" });
+      actionResponse["notification"] = {
+        error: "Error creating the Discount in Shopify",
+      };
+      return actionResponse;
     }
   } else {
-    console.log("Discount name already exists");
-    return json({ message: "Discount name already exists" });
+    actionResponse["notification"] = {
+      error: "Discount name already exists",
+    };
+    return actionResponse;
   }
 
   // end - create discount
@@ -322,6 +407,8 @@ export const action = async ({ request, params }) => {
 export default function DiscountsForm() {
   const submit = useSubmit();
   const loaderData = useLoaderData();
+  const actionData = useActionData();
+  const notificationContext = useContext(NotificationContext);
 
   const [form, setForm] = useState({
     title: loaderData?.discount.title ?? "",
@@ -335,7 +422,7 @@ export default function DiscountsForm() {
   });
 
   const handleSubmit = () => {
-    submit(form, { replace: true, method: "POST" });
+    submit(form, { method: "POST" });
   };
 
   {
@@ -705,6 +792,21 @@ export default function DiscountsForm() {
   {
     /* ------------------- Product tags end ------------------- */
   }
+
+  useEffect(() => {
+    if (loaderData?.notification) {
+      let responseStatus = Object.keys(loaderData?.notification)[0];
+      notificationContext[responseStatus](
+        loaderData?.notification[responseStatus]
+      );
+    }
+    if (actionData?.notification) {
+      let responseStatus = Object.keys(actionData?.notification)[0];
+      notificationContext[responseStatus](
+        actionData?.notification[responseStatus]
+      );
+    }
+  }, [actionData]);
 
   return (
     <Page

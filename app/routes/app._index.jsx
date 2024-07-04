@@ -2,7 +2,6 @@ import { useLoaderData } from "@remix-run/react";
 import { Box, Card, Page } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import orders from "../utils/orders";
 import OrdersTable from "../components/OrdersTable";
 import {
   Bar,
@@ -14,15 +13,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useContext, useEffect } from "react";
+import NotificationContext from "../context/NotificationContext";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
-  const shopifyFunction = await prisma.shopifyFunction.findMany();
   let loaderResponse = {};
+  const shopifyFunction = await prisma.shopifyFunction
+    .findMany()
+    .catch((err) => {
+      loaderResponse["notification"] = {
+        error: "Error fetching Shopify Function in the Database",
+      };
+      throw new Error(err);
+    });
 
   if (Object.keys(shopifyFunction).length < 1) {
-    let response = await admin.graphql(
-      `#graphql
+    let ApiShopifyFunction = await admin
+      .graphql(
+        `#graphql
       query {
         shopifyFunctions(first: 1) {
           nodes {
@@ -33,19 +42,39 @@ export const loader = async ({ request }) => {
         }
       }
       `
-    );
-    const { data } = await response.json();
+      )
+      .then((res) => res.json())
+      .catch((err) => {
+        loaderResponse["notification"] = {
+          error: "Error fetching Function from Shopify",
+        };
+        throw new Error(err);
+      });
 
-    await prisma.shopifyFunction.create({
-      data: {
-        id: data.shopifyFunctions.nodes[0].id,
-        title: data.shopifyFunctions.nodes[0].title,
-        api_type: data.shopifyFunctions.nodes[0].apiType,
-      },
-    });
+    await prisma.shopifyFunction
+      .create({
+        data: {
+          id: ApiShopifyFunction.data.shopifyFunctions.nodes[0].id,
+          title: ApiShopifyFunction.data.shopifyFunctions.nodes[0].title,
+          api_type: ApiShopifyFunction.data.shopifyFunctions.nodes[0].apiType,
+        },
+      })
+      .catch((err) => {
+        loaderResponse["notification"] = {
+          error: "Error storing the Shopify Function in the Database",
+        };
+        throw new Error(err);
+      });
   }
 
-  loaderResponse.orders = await prisma.orders.findMany();
+  const orders = await prisma.orders.findMany().catch((err) => {
+    loaderResponse["notification"] = {
+      error: "Error fetching orders from Database",
+    };
+    throw new Error(err);
+  });
+
+  loaderResponse["orders"] = orders;
 
   return loaderResponse;
 };
@@ -58,66 +87,62 @@ export const action = async ({ request }) => {
 
 export default function Index() {
   const loaderData = useLoaderData();
+  const notificationContext = useContext(NotificationContext);
 
-  const data = [
-    {
-      name: "Page A",
-      uv: 4000,
-      pv: 2400,
-      amt: 2400,
-    },
-    {
-      name: "Page B",
-      uv: 3000,
-      pv: 1398,
-      amt: 2210,
-    },
-    {
-      name: "Page C",
-      uv: 2000,
-      pv: 9800,
-      amt: 2290,
-    },
-    {
-      name: "Page D",
-      uv: 2780,
-      pv: 3908,
-      amt: 2000,
-    },
-    {
-      name: "Page E",
-      uv: 1890,
-      pv: 4800,
-      amt: 2181,
-    },
-    {
-      name: "Page F",
-      uv: 2390,
-      pv: 3800,
-      amt: 2500,
-    },
-    {
-      name: "Page G",
-      uv: 3490,
-      pv: 4300,
-      amt: 2100,
-    },
-  ];
+  let discountsFromOrders = [];
+  loaderData?.orders?.forEach((order) => {
+    order.line_items.forEach((item) => {
+      item.applied_discounts.forEach((discount) => {
+        discount.discount_amount = Number(discount.discount_amount);
+        discountsFromOrders.push(discount);
+      });
+    });
+  });
+
+  let discountsStadistics = {};
+  discountsFromOrders.forEach((discount) => {
+    if (!discountsStadistics[discount.discount_title]) {
+      discountsStadistics[discount.discount_title] = {
+        ...discount,
+        orders_count: 1,
+      };
+    } else {
+      discountsStadistics[discount.discount_title].discount_amount +=
+        discount.discount_amount;
+      discountsStadistics[discount.discount_title].orders_count++;
+    }
+  });
+  discountsStadistics = Object.values(discountsStadistics);
+
+  useEffect(() => {
+    if (loaderData.notification?.success) {
+      notificationContext.success(loaderData.notification.success);
+    }
+    if (loaderData.notification?.error) {
+      notificationContext.error(loaderData.notification.error);
+    }
+  }, []);
 
   return (
     <Page>
       <ui-title-bar title="Discounts By Tags - Dashboard"></ui-title-bar>
       <Box paddingBlock="500">
         <Card>
-          <BarChart width={900} height={250} data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="pv" fill="#8884d8" />
-            <Bar dataKey="uv" fill="#82ca9d" />
-          </BarChart>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={discountsStadistics}>
+              <CartesianGrid strokeDasharray="4 4" />
+              <XAxis dataKey="discount_title" />
+              <YAxis dataKey="discount_amount" />
+              <Tooltip />
+              <Legend verticalAlign="top" height={30} />
+              <Bar
+                name="Discount Amount"
+                dataKey="discount_amount"
+                fill="#82ca9d"
+              />
+              <Bar name="Orders Count" dataKey="orders_count" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
         </Card>
       </Box>
       <OrdersTable orders={loaderData.orders} />

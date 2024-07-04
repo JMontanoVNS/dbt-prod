@@ -1,88 +1,19 @@
+import { useSubmit } from "@remix-run/react";
 import {
   Badge,
-  Card,
   ChoiceList,
-  Frame,
   IndexFilters,
   IndexTable,
   InlineStack,
   Link,
   Modal,
-  Page,
   Text,
   useIndexResourceState,
   useSetIndexFiltersMode,
 } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
 import { useCallback, useEffect, useState } from "react";
-import { useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
-import { json } from "@remix-run/node";
-import prisma from "../db.server";
 
-export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-  const formData = await request.formData();
-  let { selectedResources } = Object.fromEntries(formData);
-  selectedResources = selectedResources.split(",").map(Number);
-
-  const selectedDiscounts = await prisma.discounts.findMany({
-    where: {
-      id: {
-        in: selectedResources,
-      },
-    },
-  });
-  const discountsShopifyIds = selectedDiscounts.map(
-    (discount) => discount.discountId
-  );
-
-  const response = await admin.graphql(
-    `#graphql
-    mutation discountAutomaticBulkDelete($ids: [ID!]!) {
-      discountAutomaticBulkDelete(ids: $ids) {
-        job {
-          id
-          done
-        }
-        userErrors {
-          message
-        }
-      }
-    }`,
-    {
-      variables: {
-        ids: discountsShopifyIds,
-      },
-    }
-  );
-  const { data } = await response.json();
-  if (data.discountAutomaticBulkDelete.userErrors.length < 1) {
-    const deleteDiscounts = await prisma.discounts.deleteMany({
-      where: {
-        id: {
-          in: selectedResources,
-        },
-      },
-    });
-
-    return json({ deleteDiscounts });
-  }
-
-  return json({ error: "There was an error during the process" });
-};
-
-export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-
-  const discountsDB = await prisma.discounts.findMany();
-
-  return json({ discountsDB });
-};
-
-export default function Discounts() {
-  const navigate = useNavigate();
-  const { discountsDB } = useLoaderData();
-
+export default function DiscountsTable(props) {
   {
     /* ------------------- Table data start ------------------- */
   }
@@ -92,7 +23,7 @@ export default function Discounts() {
     SCHEDULED: "attention",
     EXPIRED: "critical",
   };
-  const [discounts, setDiscounts] = useState(discountsDB);
+  const [discounts, setDiscounts] = useState(props.discounts);
   const resourceName = {
     singular: "discount",
     plural: "discounts",
@@ -175,9 +106,6 @@ export default function Discounts() {
     )
   );
 
-  const createDiscountHandler = () => {
-    return navigate("/app/form");
-  };
   {
     /* ------------------- Table data end ------------------- */
   }
@@ -331,7 +259,7 @@ export default function Discounts() {
     setStatus(value);
     if (value[0] === "active") value = true;
     if (value[0] === "inactive") value = false;
-    const filteredDiscounts = [...discountsDB].filter(
+    const filteredDiscounts = [...props.discounts].filter(
       (discount) => discount.status === value
     );
     return setDiscounts(filteredDiscounts);
@@ -342,7 +270,7 @@ export default function Discounts() {
   );
   const handleStatusRemove = () => {
     setStatus("");
-    setDiscounts(discountsDB);
+    setDiscounts(props.discounts);
   };
   const handleQueryValueRemove = useCallback(() => setQueryValue(""), []);
   const handleFiltersClearAll = useCallback(() => {
@@ -388,11 +316,11 @@ export default function Discounts() {
     /* ------------------- Delete Discounts start ------------------- */
   }
 
-  const fetcher = useFetcher();
+  const submit = useSubmit();
   const [active, setActive] = useState(false);
   const toggleModal = useCallback(() => setActive((active) => !active), []);
   const handleDelete = () => {
-    fetcher.submit({ selectedResources }, { replace: true, method: "DELETE" });
+    submit({ selectedResources }, { method: "DELETE" });
     setActive((active) => !active);
   };
 
@@ -405,110 +333,95 @@ export default function Discounts() {
   ];
 
   useEffect(() => {
-    setDiscounts(discountsDB);
+    setDiscounts(props.discounts);
     clearSelection();
-  }, [discountsDB]);
+  }, [props.discounts]);
 
   {
     /* ------------------- Delete Discounts end ------------------- */
   }
 
   return (
-    <Page
-      title={"Discounts"}
-      primaryAction={{
-        content: "Create Discount",
-        onAction: createDiscountHandler,
-        disabled: false,
-        loading: false,
-      }}
-    >
-      <ui-title-bar title="Discounts By Tags - Discounts"></ui-title-bar>
-      <Card padding="0">
-        <IndexFilters
-          sortOptions={sortOptions}
-          sortSelected={sortSelected}
-          queryValue={queryValue}
-          queryPlaceholder="Searching in all"
-          onQueryChange={handleFiltersQueryChange}
-          onQueryClear={() => setQueryValue("")}
-          onSort={onHandleSort}
-          primaryAction={primaryAction}
-          cancelAction={{
-            onAction: onHandleCancel,
-            disabled: false,
-            loading: false,
-          }}
-          tabs={tabs}
-          selected={selected}
-          onSelect={setSelected}
-          canCreateNewView
-          onCreateNewView={onCreateNewView}
-          filters={filters}
-          appliedFilters={appliedFilters}
-          onClearAll={handleFiltersClearAll}
-          mode={mode}
-          setMode={setMode}
-        />
-        <IndexTable
-          resourceName={resourceName}
-          itemCount={discounts.length}
-          selectedItemsCount={
-            allResourcesSelected ? "All" : selectedResources.length
-          }
-          onSelectionChange={handleSelectionChange}
-          sortable={[
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-          ]}
-          headings={[
-            { title: "ID" },
-            { title: "Name" },
-            { title: "Amount" },
-            { title: "Status" },
-            { title: "Type" },
-            { title: "Conditional" },
-            { title: "Start Date" },
-            { title: "End Date" },
-            { title: "Customer Tags" },
-            { title: "Product Tags" },
-          ]}
-          promotedBulkActions={promotedBulkActions}
-        >
-          {rowMarkup}
-        </IndexTable>
-      </Card>
+    <>
+      <IndexFilters
+        sortOptions={sortOptions}
+        sortSelected={sortSelected}
+        queryValue={queryValue}
+        queryPlaceholder="Searching in all"
+        onQueryChange={handleFiltersQueryChange}
+        onQueryClear={() => setQueryValue("")}
+        onSort={onHandleSort}
+        primaryAction={primaryAction}
+        cancelAction={{
+          onAction: onHandleCancel,
+          disabled: false,
+          loading: false,
+        }}
+        tabs={tabs}
+        selected={selected}
+        onSelect={setSelected}
+        canCreateNewView
+        onCreateNewView={onCreateNewView}
+        filters={filters}
+        appliedFilters={appliedFilters}
+        onClearAll={handleFiltersClearAll}
+        mode={mode}
+        setMode={setMode}
+      />
+      <IndexTable
+        resourceName={resourceName}
+        itemCount={discounts.length}
+        selectedItemsCount={
+          allResourcesSelected ? "All" : selectedResources.length
+        }
+        onSelectionChange={handleSelectionChange}
+        sortable={[
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+        ]}
+        headings={[
+          { title: "ID" },
+          { title: "Name" },
+          { title: "Amount" },
+          { title: "Status" },
+          { title: "Type" },
+          { title: "Conditional" },
+          { title: "Start Date" },
+          { title: "End Date" },
+          { title: "Customer Tags" },
+          { title: "Product Tags" },
+        ]}
+        promotedBulkActions={promotedBulkActions}
+      >
+        {rowMarkup}
+      </IndexTable>
 
-      <Frame>
-        <div style={{ height: "500px" }}>
-          <Modal
-            // activator={activator}
-            open={active}
-            onClose={toggleModal}
-            title={`Remove ${selectedResources.length} Discounts?`}
-            primaryAction={{
-              destructive: true,
-              content: "Delete Discounts",
-              onAction: handleDelete,
-            }}
-            secondaryActions={[
-              {
-                content: "Cancel",
-                onAction: toggleModal,
-              },
-            ]}
-          >
-            <Modal.Section>This can’t be undone.</Modal.Section>
-          </Modal>
-        </div>
-      </Frame>
-    </Page>
+      <Modal
+        // activator={activator}
+        open={active}
+        onClose={toggleModal}
+        title={`Remove ${selectedResources.length} Discounts?`}
+        primaryAction={{
+          destructive: true,
+          content: "Delete Discounts",
+          onAction: handleDelete,
+        }}
+        secondaryActions={[
+          {
+            content: "Cancel",
+            onAction: toggleModal,
+          },
+        ]}
+      >
+        <Modal.Section>This can’t be undone.</Modal.Section>
+      </Modal>
+    </>
   );
 }
