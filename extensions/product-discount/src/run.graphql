@@ -4,6 +4,10 @@ query RunInput($productTags: [String!], $customerTags: [String!]) {
       customer {
         firstName
         hasAnyTag(tags: $customerTags)
+        hasTags(tags: $customerTags) {
+          hasTag
+          tag
+        }
       }
     }
     lines {
@@ -16,6 +20,10 @@ query RunInput($productTags: [String!], $customerTags: [String!]) {
           product {
             handle
             hasAnyTag(tags: $productTags)
+            hasTags(tags: $productTags) {
+              hasTag
+              tag
+            }
           }
         }
       }

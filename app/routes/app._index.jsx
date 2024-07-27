@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { useContext, useEffect } from "react";
 import NotificationContext from "../context/NotificationContext";
+import DiscountsTable from "../components/DiscountsTable";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -67,11 +68,27 @@ export const loader = async ({ request }) => {
       });
   }
 
-  const orders = await prisma.orders.findMany().catch((err) => {
+  let orders = await prisma.orders.findMany().catch((err) => {
     loaderResponse["notification"] = {
       error: "Error fetching orders from Database",
     };
     throw new Error(err);
+  });
+
+  orders.forEach((order) => {
+    return order.line_items.forEach(async (item) => {
+      return item.applied_discounts.forEach(async (discount) => {
+        return await prisma.discounts
+          .findFirst({
+            where: {
+              discountId: discount.discount_id,
+            },
+          })
+          .then((res) => {
+            return (discount["status"] = res.status);
+          });
+      });
+    });
   });
 
   loaderResponse["orders"] = orders;
@@ -113,6 +130,8 @@ export default function Index() {
     }
   });
   discountsStadistics = Object.values(discountsStadistics);
+
+  console.log(loaderData.orders);
 
   useEffect(() => {
     if (loaderData.notification?.success) {

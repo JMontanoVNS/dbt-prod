@@ -27,7 +27,8 @@ export function run(input) {
    * @type {{
    *   percentage: number,
    *   fixedAmount: number,
-   *   conditional: string
+   *   conditional: string,
+   *   productTags: object,
    * }}
    */
   const configuration = JSON.parse(
@@ -39,7 +40,7 @@ export function run(input) {
 
   let targets;
 
-  if(configuration.conditional === 'OR') {
+  if (configuration.conditional === "OR") {
     if (input.cart.buyerIdentity?.customer?.hasAnyTag) {
       targets = input.cart.lines.map((line) => {
         const variant = /** @type {ProductVariant} */ (line.merchandise);
@@ -68,25 +69,37 @@ export function run(input) {
     }
   }
 
-  if(configuration.conditional === 'AND') {
+  if (configuration.conditional === "AND") {
     targets = input.cart.lines
-        .filter((line) => {
-          if (line.merchandise.__typename == "ProductVariant") {
-            let hasTags = line.merchandise.product.hasAnyTag;
-            if(hasTags && input.cart.buyerIdentity?.customer?.hasAnyTag)
-            return hasTags === true;
-          }
-        })
-        .map((line) => {
-          const variant = /** @type {ProductVariant} */ (line.merchandise);
-          return /** @type {Target} */ ({
-            productVariant: {
-              id: variant.id,
-            },
-          });
-        });
-  }
+      .filter((line) => {
+        if (line.merchandise.__typename == "ProductVariant") {
+          let customertHasTags = true;
+          let productHasTags = true;
 
+          input.cart.buyerIdentity?.customer?.hasTags?.forEach((item) => {
+            if (!item.hasTag) {
+              return (customertHasTags = false);
+            }
+          });
+
+          line.merchandise?.product?.hasTags?.forEach((item) => {
+            if (!item.hasTag) {
+              return (productHasTags = false);
+            }
+          });
+
+          if (customertHasTags && productHasTags) return true;
+        }
+      })
+      .map((line) => {
+        const variant = /** @type {ProductVariant} */ (line.merchandise);
+        return /** @type {Target} */ ({
+          productVariant: {
+            id: variant.id,
+          },
+        });
+      });
+  }
 
   if (!targets) {
     console.error("No cart lines qualify for volume discount.");

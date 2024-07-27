@@ -22,6 +22,53 @@ export const loader = async ({ request }) => {
     throw new Error(err);
   });
 
+  const ACTIVE = "ACTIVE";
+  const EXPIRED = "EXPIRED";
+  const SCHEDULED = "SCHEDULED";
+
+  let currentDate = new Date(Date.now());
+  discountsDB.forEach(async (discount) => {
+    let discountStartDate = new Date(discount.startsAt);
+    let discountEndDate = new Date(discount.endsAt);
+    let newStatus = "";
+
+    switch (discount.status) {
+      case ACTIVE:
+        if (discountEndDate < currentDate) newStatus = EXPIRED;
+        if (discountStartDate > currentDate) newStatus = SCHEDULED;
+
+        break;
+
+      case EXPIRED:
+        if (discountStartDate <= currentDate && discountEndDate > currentDate)
+          newStatus = ACTIVE;
+        if (discountStartDate > currentDate) newStatus = SCHEDULED;
+
+        break;
+
+      case SCHEDULED:
+        if (discountStartDate <= currentDate && discountEndDate > currentDate)
+          newStatus = ACTIVE;
+        if (discountEndDate < currentDate) newStatus = EXPIRED;
+
+        break;
+
+      default:
+        break;
+    }
+
+    if (newStatus) {
+      await prisma.discounts.update({
+        where: {
+          id: discount.id,
+        },
+        data: {
+          status: newStatus,
+        },
+      });
+    }
+  });
+
   loaderResponse["discountsDB"] = discountsDB;
 
   return loaderResponse;

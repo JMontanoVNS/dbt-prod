@@ -258,7 +258,7 @@ export default function ({ orders }) {
   };
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
     useIndexResourceState(products);
-  const rowMarkup = orders.map(
+  const rowMarkup = orders?.map(
     ({ id, date, shop, order_total, discount_total, order_id }, index) => (
       <IndexTable.Row
         id={id}

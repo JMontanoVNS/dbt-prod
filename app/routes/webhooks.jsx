@@ -28,7 +28,12 @@ export const action = async ({ request }) => {
         created_at,
         discount_applications,
       } = payload;
-      const discountsDB = await prisma.discounts.findMany();
+      const discountsDB = await prisma.discounts.findMany().catch((err) => {
+        actionData["notification"] = {
+          error: "Webhook error fetching discounts from Database",
+        };
+        throw new Error(err);
+      });
       let orderData = {};
       orderData.line_items = [];
 
