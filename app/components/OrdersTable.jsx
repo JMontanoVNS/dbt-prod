@@ -1,7 +1,5 @@
 import {
-  Badge,
   Card,
-  ChoiceList,
   IndexFilters,
   IndexTable,
   Text,
@@ -10,7 +8,9 @@ import {
 } from "@shopify/polaris";
 import { useCallback, useState } from "react";
 
-export default function ({ orders }) {
+export default function (props) {
+  const [orders, setOrders] = useState(props.orders)
+
   function disambiguateLabel(key, value) {
     switch (key) {
       case "type":
@@ -29,12 +29,7 @@ export default function ({ orders }) {
     }
   }
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  const [itemStrings, setItemStrings] = useState([
-    "All",
-    "Active",
-    "Draft",
-    "Archived",
-  ]);
+  const [itemStrings, setItemStrings] = useState(['All']);
   const deleteView = (index) => {
     const newItemStrings = [...itemStrings];
     newItemStrings.splice(index, 1);
@@ -50,48 +45,20 @@ export default function ({ orders }) {
   const tabs = itemStrings.map((item, index) => ({
     content: item,
     index,
-    onAction: () => {},
+    onAction: () => {
+      switch (item) {
+        case "All":
+          setOrders((prevState) => props.orders);
+
+          break;
+
+        default:
+          break;
+      }
+    },
     id: `${item}-${index}`,
     isLocked: index === 0,
-    actions:
-      index === 0
-        ? []
-        : [
-            {
-              type: "rename",
-              onAction: () => {},
-              onPrimaryAction: async (value) => {
-                const newItemsStrings = tabs.map((item, idx) => {
-                  if (idx === index) {
-                    return value;
-                  }
-                  return item.content;
-                });
-                await sleep(1);
-                setItemStrings(newItemsStrings);
-                return true;
-              },
-            },
-            {
-              type: "duplicate",
-              onPrimaryAction: async (name) => {
-                await sleep(1);
-                duplicateView(name);
-                return true;
-              },
-            },
-            {
-              type: "edit",
-            },
-            {
-              type: "delete",
-              onPrimaryAction: async () => {
-                await sleep(1);
-                deleteView(index);
-                return true;
-              },
-            },
-          ],
+    actions: []
   }));
   const [selected, setSelected] = useState(0);
   const onCreateNewView = async (value) => {
@@ -101,18 +68,121 @@ export default function ({ orders }) {
     return true;
   };
   const sortOptions = [
-    { label: "Product", value: "product asc", directionLabel: "Ascending" },
-    { label: "Product", value: "product desc", directionLabel: "Descending" },
-    { label: "Status", value: "tone asc", directionLabel: "A-Z" },
-    { label: "Status", value: "tone desc", directionLabel: "Z-A" },
-    { label: "Type", value: "type asc", directionLabel: "A-Z" },
-    { label: "Type", value: "type desc", directionLabel: "Z-A" },
-    { label: "Vendor", value: "vendor asc", directionLabel: "Ascending" },
-    { label: "Vendor", value: "vendor desc", directionLabel: "Descending" },
+    {
+      label: "ID",
+      value: "id asc",
+      directionLabel: "Ascending",
+    },
+    {
+      label: "ID",
+      value: "id desc",
+      directionLabel: "Descending",
+    },
+    {
+      label: "Order Total",
+      value: "order total asc",
+      directionLabel: "Ascending",
+    },
+    {
+      label: "Order Total",
+      value: "order total desc",
+      directionLabel: "Descending",
+    },
+    {
+      label: "Discount Total",
+      value: "discount total asc",
+      directionLabel: "Ascending",
+    },
+    {
+      label: "Discount Total",
+      value: "discount total desc",
+      directionLabel: "Descending",
+    },
+    {
+      label: "Date",
+      value: "date asc",
+      directionLabel: "Ascending",
+    },
+    {
+      label: "Date",
+      value: "date desc",
+      directionLabel: "Descending",
+    },
   ];
-  const [sortSelected, setSortSelected] = useState(["product asc"]);
+  const [sortSelected, setSortSelected] = useState(["id asc"]);
+  const onHandleSort = (value) => {
+    setSortSelected(value);
+    switch (value[0]) {
+      case "id asc":
+        setOrders((prevState) =>
+          [...prevState].sort((a, b) => Number(a.id) - Number(b.id)),
+        );
+
+        break;
+
+      case "id desc":
+        setOrders((prevState) =>
+          [...prevState].sort((a, b) => Number(b.id) - Number(a.id)),
+        );
+
+        break;
+      
+      case "order total asc":
+        setOrders((prevState) =>
+          [...prevState].sort((a, b) => Number(a.order_total) - Number(b.order_total)),
+        );
+
+        break;
+
+      case "order total desc":
+      setOrders((prevState) =>
+        [...prevState].sort((a, b) => Number(b.order_total) - Number(a.order_total)),
+      );
+
+        break;
+
+      case "discount total asc":
+      setOrders((prevState) =>
+        [...prevState].sort((a, b) => Number(a.discount_total) - Number(b.discount_total)),
+      );
+
+        break;
+
+      case "discount total desc":
+      setOrders((prevState) =>
+        [...prevState].sort((a, b) => Number(b.discount_total) - Number(a.discount_total)),
+      );
+
+        break;
+
+      case "date asc":
+        setOrders((prevState) =>
+          [...prevState].sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+          ),
+        );
+
+        break;
+
+      case "date desc":
+        setOrders((prevState) =>
+          [...prevState].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+          ),
+        );
+
+        break;
+
+
+      default:
+        break;
+    }
+  };
   const { mode, setMode } = useSetIndexFiltersMode();
-  const onHandleCancel = () => {};
+  const onHandleCancel = () => {
+    setQueryValue("");
+    setOrders((prevState) => props.orders);
+  };
   const onHandleSave = async () => {
     await sleep(1);
     return true;
@@ -136,10 +206,15 @@ export default function ({ orders }) {
   const [queryValue, setQueryValue] = useState("");
   const handleStatusChange = useCallback((value) => setStatus(value), []);
   const handleTypeChange = useCallback((value) => setType(value), []);
-  const handleFiltersQueryChange = useCallback(
-    (value) => setQueryValue(value),
-    []
-  );
+  const handleFiltersQueryChange = (value) => {
+    setQueryValue(value);
+    let ordersFiltered = [...props.orders].filter((order) => {
+      return value === ""
+        ? order
+        : Object.values(order).map(item => item?.toString().toLowerCase()).toString().includes(value.trim().toLowerCase());
+    });
+    setOrders((prevState) => ordersFiltered);
+  };
   const handleStatusRemove = useCallback(() => setStatus(undefined), []);
   const handleTypeRemove = useCallback(() => setType(undefined), []);
   const handleQueryValueRemove = useCallback(() => setQueryValue(""), []);
@@ -148,45 +223,46 @@ export default function ({ orders }) {
     handleTypeRemove();
     handleQueryValueRemove();
   }, [handleStatusRemove, handleQueryValueRemove, handleTypeRemove]);
-  const filters = [
-    {
-      key: "tone",
-      label: "Status",
-      filter: (
-        <ChoiceList
-          title="tone"
-          titleHidden
-          choices={[
-            { label: "Active", value: "active" },
-            { label: "Draft", value: "draft" },
-            { label: "Archived", value: "archived" },
-          ]}
-          selected={tone || []}
-          onChange={handleStatusChange}
-          allowMultiple
-        />
-      ),
-      shortcut: true,
-    },
-    {
-      key: "type",
-      label: "Type",
-      filter: (
-        <ChoiceList
-          title="Type"
-          titleHidden
-          choices={[
-            { label: "Brew Gear", value: "brew-gear" },
-            { label: "Brew Merch", value: "brew-merch" },
-          ]}
-          selected={type || []}
-          onChange={handleTypeChange}
-          allowMultiple
-        />
-      ),
-      shortcut: true,
-    },
-  ];
+  const filters = [];
+  // const filters = [
+  //   {
+  //     key: "tone",
+  //     label: "Status",
+  //     filter: (
+  //       <ChoiceList
+  //         title="tone"
+  //         titleHidden
+  //         choices={[
+  //           { label: "Active", value: "active" },
+  //           { label: "Draft", value: "draft" },
+  //           { label: "Archived", value: "archived" },
+  //         ]}
+  //         selected={tone || []}
+  //         onChange={handleStatusChange}
+  //         allowMultiple
+  //       />
+  //     ),
+  //     shortcut: true,
+  //   },
+  //   {
+  //     key: "type",
+  //     label: "Type",
+  //     filter: (
+  //       <ChoiceList
+  //         title="Type"
+  //         titleHidden
+  //         choices={[
+  //           { label: "Brew Gear", value: "brew-gear" },
+  //           { label: "Brew Merch", value: "brew-merch" },
+  //         ]}
+  //         selected={type || []}
+  //         onChange={handleTypeChange}
+  //         allowMultiple
+  //       />
+  //     ),
+  //     shortcut: true,
+  //   },
+  // ];
   const appliedFilters = [];
   if (tone && !isEmpty(tone)) {
     const key = "tone";
@@ -204,60 +280,12 @@ export default function ({ orders }) {
       onRemove: handleTypeRemove,
     });
   }
-
-  const products = [
-    {
-      id: "1020",
-      price: "$200",
-      product: "1ZPRESSO | J-MAX Manual Coffee Grinder",
-      tone: <Badge tone="success">Active</Badge>,
-      inventory: "20 in stock",
-      type: "Brew Gear",
-      vendor: "Espresso Shot Coffee",
-    },
-    {
-      id: "1018",
-      price: "$200",
-      product: "Acaia Pearl Set",
-      tone: <Badge tone="success">Active</Badge>,
-      inventory: "2 in stock for 50 variants",
-      type: "Brew Gear",
-      vendor: "Espresso Shot Coffee",
-    },
-    {
-      id: "1016",
-      price: "$200",
-      product: "AeroPress Go Brewer",
-      tone: <Badge tone="info">Draft</Badge>,
-      inventory: "3 in stock for 50 variants",
-      type: "Brew Gear",
-      vendor: "Espresso Shot Coffee",
-    },
-    {
-      id: "1015",
-      price: "$200",
-      product: "Canadiano Brewer",
-      tone: <Badge tone="success">Active</Badge>,
-      inventory: "890 in stock for 50 variants",
-      type: "Brew Merch",
-      vendor: "Espresso Shot Coffee",
-    },
-    {
-      id: "1014",
-      price: "200",
-      product: "Canadiano Brewer White Ash",
-      tone: <Badge tone="success">Active</Badge>,
-      inventory: "890 in stock for 50 variants",
-      type: "Brew Gear",
-      vendor: "Espresso Shot Coffee",
-    },
-  ];
   const resourceName = {
     singular: "order",
-    plural: "Orders",
+    plural: "orders",
   };
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
-    useIndexResourceState(products);
+    useIndexResourceState(orders);
   const rowMarkup = orders?.map(
     ({ id, date, shop, order_total, discount_total, order_id }, index) => (
       <IndexTable.Row
@@ -293,8 +321,8 @@ export default function ({ orders }) {
         queryPlaceholder="Searching in all"
         onQueryChange={handleFiltersQueryChange}
         onQueryClear={() => {}}
-        onSort={setSortSelected}
-        primaryAction={primaryAction}
+        onSort={onHandleSort}
+        // primaryAction={primaryAction}
         cancelAction={{
           onAction: onHandleCancel,
           disabled: false,
@@ -304,7 +332,7 @@ export default function ({ orders }) {
         selected={selected}
         onSelect={setSelected}
         canCreateNewView
-        onCreateNewView={onCreateNewView}
+        // onCreateNewView={onCreateNewView}
         filters={filters}
         appliedFilters={appliedFilters}
         onClearAll={handleFiltersClearAll}
@@ -313,12 +341,12 @@ export default function ({ orders }) {
       />
       <IndexTable
         resourceName={resourceName}
-        itemCount={products.length}
+        itemCount={orders.length}
         selectedItemsCount={
           allResourcesSelected ? "All" : selectedResources.length
         }
         onSelectionChange={handleSelectionChange}
-        sortable={[false, true, true, true, true, true, true]}
+        sortable={[false, false, false, false, false, false, false]}
         headings={[
           { title: "ID" },
           { title: "Shop" },

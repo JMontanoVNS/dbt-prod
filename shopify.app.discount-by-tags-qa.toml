@@ -3,13 +3,12 @@
 client_id = "41e4a06325f5e4fcec5dfdd3a8878451"
 name = "discount-by-tags-qa"
 handle = "discount-by-tags-qa"
-application_url = "https://article-offline-vessel-del.trycloudflare.com"
+application_url = "https://scene-alternatively-safety-ca.trycloudflare.com"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
 dev_store_url = "j-montano-dev.myshopify.com"
-include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -17,9 +16,9 @@ scopes = "read_discounts,read_orders,write_discounts,write_orders,write_products
 
 [auth]
 redirect_urls = [
-  "https://article-offline-vessel-del.trycloudflare.com/auth/callback",
-  "https://article-offline-vessel-del.trycloudflare.com/auth/shopify/callback",
-  "https://article-offline-vessel-del.trycloudflare.com/api/auth/callback"
+  "https://scene-alternatively-safety-ca.trycloudflare.com/auth/callback",
+  "https://scene-alternatively-safety-ca.trycloudflare.com/auth/shopify/callback",
+  "https://scene-alternatively-safety-ca.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

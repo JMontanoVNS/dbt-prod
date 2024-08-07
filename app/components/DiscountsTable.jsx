@@ -131,11 +131,9 @@ export default function DiscountsTable(props) {
 
   const [itemStrings, setItemStrings] = useState([
     "All",
-    // "Unpaid",
-    // "Open",
-    // "Closed",
-    // "Local delivery",
-    // "Local pickup",
+    "Active",
+    "Expired",
+    "Scheduled",
   ]);
   const deleteView = (index) => {
     const newItemStrings = [...itemStrings];
@@ -154,48 +152,41 @@ export default function DiscountsTable(props) {
   const tabs = itemStrings.map((item, index) => ({
     content: item,
     index,
-    onAction: () => {},
+    onAction: () => {
+      switch (item) {
+        case "All":
+          setDiscounts((prevState) => props.discounts);
+
+          break;
+
+        case "Active":
+          setDiscounts((prevState) =>
+            props.discounts.filter((item) => item.status === "ACTIVE"),
+          );
+
+          break;
+
+        case "Expired":
+          setDiscounts((prevState) =>
+            props.discounts.filter((item) => item.status === "EXPIRED"),
+          );
+
+          break;
+
+        case "Scheduled":
+        setDiscounts((prevState) =>
+          props.discounts.filter((item) => item.status === "SCHEDULED"),
+        );
+
+        break;
+
+        default:
+          break;
+      }
+    },
     id: `${item}-${index}`,
     isLocked: index === 0,
-    actions:
-      index === 0
-        ? []
-        : [
-            {
-              type: "rename",
-              onAction: () => {},
-              onPrimaryAction: async (value) => {
-                const newItemsStrings = tabs.map((item, idx) => {
-                  if (idx === index) {
-                    return value;
-                  }
-                  return item.content;
-                });
-                await sleep(1);
-                setItemStrings(newItemsStrings);
-                return true;
-              },
-            },
-            {
-              type: "duplicate",
-              onPrimaryAction: async (value) => {
-                await sleep(1);
-                duplicateView(value);
-                return true;
-              },
-            },
-            {
-              type: "edit",
-            },
-            {
-              type: "delete",
-              onPrimaryAction: async () => {
-                await sleep(1);
-                deleteView(index);
-                return true;
-              },
-            },
-          ],
+    actions: []
   }));
   const onCreateNewView = async (value) => {
     await sleep(500);
@@ -206,35 +197,125 @@ export default function DiscountsTable(props) {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const [selected, setSelected] = useState(0);
   const sortOptions = [
-    { label: "Date", value: "date asc", directionLabel: "Ascending" },
-    { label: "Date", value: "date desc", directionLabel: "Descending" },
-    { label: "Status", value: "status asc", directionLabel: "A-Z" },
-    { label: "Status", value: "status desc", directionLabel: "Z-A" },
+    {
+      label: "ID",
+      value: "id asc",
+      directionLabel: "Ascending",
+    },
+    {
+      label: "ID",
+      value: "id desc",
+      directionLabel: "Descending",
+    },
+    {
+      label: "Amount",
+      value: "amount asc",
+      directionLabel: "Ascending",
+    },
+    {
+      label: "Amount",
+      value: "amount desc",
+      directionLabel: "Descending",
+    },
+    { 
+      label: "Start Date", 
+      value: "start date asc", 
+      directionLabel: "Ascending"
+    },
+    { 
+      label: "Start Date", 
+      value: "start date desc", 
+      directionLabel: "Descending"
+    },
+    { 
+      label: "End Date", 
+      value: "end date asc", 
+      directionLabel: "Ascending"
+    },
+    { 
+      label: "End Date", 
+      value: "end date desc", 
+      directionLabel: "Descending"
+    },
   ];
-  const [sortSelected, setSortSelected] = useState(["date asc"]);
+  const [sortSelected, setSortSelected] = useState(["id asc"]);
   const onHandleSort = (value) => {
     setSortSelected(value);
     switch (value[0]) {
-      case "date asc":
-        return setDiscounts(
-          [...discounts].sort(
-            (a, b) =>
-              new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-          )
+      case "id asc":
+        setDiscounts((prevState) =>
+          [...prevState].sort((a, b) => Number(a.id) - Number(b.id)),
         );
-      case "date desc":
-        return setDiscounts(
-          [...discounts].sort(
-            (a, b) =>
-              new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-          )
+
+        break;
+
+      case "id desc":
+        setDiscounts((prevState) =>
+          [...prevState].sort((a, b) => Number(b.id) - Number(a.id)),
         );
+
+        break;
+      
+      case "amount asc":
+        setDiscounts((prevState) =>
+          [...prevState].sort((a, b) => Number(a.amount) - Number(b.amount)),
+        );
+
+        break;
+
+      case "amount desc":
+      setDiscounts((prevState) =>
+        [...prevState].sort((a, b) => Number(b.amount) - Number(a.amount)),
+      );
+
+        break;
+
+      case "start date asc":
+        setDiscounts((prevState) =>
+          [...prevState].sort(
+            (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+          ),
+        );
+
+        break;
+
+      case "start date desc":
+        setDiscounts((prevState) =>
+          [...prevState].sort(
+            (a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime(),
+          ),
+        );
+
+        break;
+
+      case "end date asc":
+      setDiscounts((prevState) =>
+        [...prevState].sort(
+          (a, b) => new Date(a.endsAt).getTime() - new Date(b.endsAt).getTime(),
+        ),
+      );
+
+        break;
+
+      case "end date desc":
+        setDiscounts((prevState) =>
+          [...prevState].sort(
+            (a, b) => new Date(b.endsAt).getTime() - new Date(a.endsAt).getTime(),
+          ),
+        );
+
+        break;
+
+
       default:
-        return;
+        break;
     }
   };
   const { mode, setMode } = useSetIndexFiltersMode();
-  const onHandleCancel = () => {};
+  const onHandleCancel = () => {
+    setQueryValue("");
+    setDiscounts((prevState) => props.discounts);
+  };
   const onHandleSave = async () => {
     await sleep(1);
     return true;
@@ -264,40 +345,43 @@ export default function DiscountsTable(props) {
     );
     return setDiscounts(filteredDiscounts);
   };
-  const handleFiltersQueryChange = useCallback(
-    (value) => setQueryValue(value),
-    []
-  );
-  const handleStatusRemove = () => {
-    setStatus("");
-    setDiscounts(props.discounts);
+  const handleFiltersQueryChange = (value) => {
+    setQueryValue(value);
+    let discountsFiltered = [...props.discounts].filter((discount) => {
+      return value === ""
+        ? discount
+        : Object.values(discount).map(item => item?.toString().toLowerCase()).toString().includes(value.trim().toLowerCase());
+    });
+    setDiscounts((prevState) => discountsFiltered);
   };
+  const handleStatusRemove = useCallback(() => setStatus(undefined), [])
   const handleQueryValueRemove = useCallback(() => setQueryValue(""), []);
   const handleFiltersClearAll = useCallback(() => {
     handleStatusRemove();
     handleQueryValueRemove();
   }, [handleStatusRemove, handleQueryValueRemove]);
-  const filters = [
-    {
-      key: "status",
-      label: "Status",
-      filter: (
-        <ChoiceList
-          title="Status"
-          titleHidden
-          choices={[
-            { label: "ACTIVE", value: "active" },
-            { label: "INACTIVE", value: "inactive" },
-            { label: "SCHEDULED", value: "scheduled" },
-            { label: "EXPIRED", value: "expired" },
-          ]}
-          selected={status || []}
-          onChange={handleStatusChange}
-        />
-      ),
-      shortcut: true,
-    },
-  ];
+  const filters = [];
+  // const filters = [
+  //   {
+  //     key: "status",
+  //     label: "Status",
+  //     filter: (
+  //       <ChoiceList
+  //         title="Status"
+  //         titleHidden
+  //         choices={[
+  //           { label: "ACTIVE", value: "active" },
+  //           { label: "INACTIVE", value: "inactive" },
+  //           { label: "SCHEDULED", value: "scheduled" },
+  //           { label: "EXPIRED", value: "expired" },
+  //         ]}
+  //         selected={status || []}
+  //         onChange={handleStatusChange}
+  //       />
+  //     ),
+  //     shortcut: true,
+  //   },
+  // ];
   const appliedFilters = [];
   if (status && !isEmpty(status)) {
     const key = "status";
@@ -351,7 +435,7 @@ export default function DiscountsTable(props) {
         onQueryChange={handleFiltersQueryChange}
         onQueryClear={() => setQueryValue("")}
         onSort={onHandleSort}
-        primaryAction={primaryAction}
+        // primaryAction={primaryAction}
         cancelAction={{
           onAction: onHandleCancel,
           disabled: false,
@@ -360,8 +444,8 @@ export default function DiscountsTable(props) {
         tabs={tabs}
         selected={selected}
         onSelect={setSelected}
-        canCreateNewView
-        onCreateNewView={onCreateNewView}
+        canCreateNewView={false}
+        // onCreateNewView={onCreateNewView}
         filters={filters}
         appliedFilters={appliedFilters}
         onClearAll={handleFiltersClearAll}

@@ -15,7 +15,6 @@ import {
 } from "recharts";
 import { useContext, useEffect } from "react";
 import NotificationContext from "../context/NotificationContext";
-import DiscountsTable from "../components/DiscountsTable";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -75,21 +74,27 @@ export const loader = async ({ request }) => {
     throw new Error(err);
   });
 
-  orders.forEach((order) => {
-    return order.line_items.forEach(async (item) => {
-      return item.applied_discounts.forEach(async (discount) => {
-        return await prisma.discounts
-          .findFirst({
-            where: {
-              discountId: discount.discount_id,
-            },
-          })
-          .then((res) => {
-            return (discount["status"] = res.status);
-          });
-      });
-    });
-  });
+  const updatedOrders = await Promise.all(
+    orders.map(async (order) => {
+      await Promise.all(
+        order.line_items.map(async (item) => {
+          await Promise.all(
+            item.applied_discounts.map(async (discount) => {
+              await prisma.discounts
+                .findFirst({
+                  where: {
+                    discountId: discount.discount_id,
+                  },
+                })
+                .then((res) => {
+                  return discount["discount_status"] = res.status
+                });
+            })
+          )
+        })
+      )
+    })
+  );
 
   loaderResponse["orders"] = orders;
 
@@ -110,8 +115,10 @@ export default function Index() {
   loaderData?.orders?.forEach((order) => {
     order.line_items.forEach((item) => {
       item.applied_discounts.forEach((discount) => {
-        discount.discount_amount = Number(discount.discount_amount);
-        discountsFromOrders.push(discount);
+        if(discount.discount_status === 'ACTIVE') {
+          discount.discount_amount = Number(discount.discount_amount);
+          discountsFromOrders.push(discount);
+        }
       });
     });
   });
@@ -130,8 +137,6 @@ export default function Index() {
     }
   });
   discountsStadistics = Object.values(discountsStadistics);
-
-  console.log(loaderData.orders);
 
   useEffect(() => {
     if (loaderData.notification?.success) {
