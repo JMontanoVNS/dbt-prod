@@ -96,6 +96,14 @@ export const action = async ({ request, params }) => {
   formData.customerTags =
     formData.customerTags.length < 1 ? null : formData.customerTags;
 
+    if(formData.amount <= 0) {
+      actionResponse["notification"] = {
+        error: "The discount amount must be greater than 0",
+      };
+
+      return actionResponse
+    }
+
   let metafieldData = {
     [formData.discountType]: formData.amount.toString(),
     customerTags: formData.customerTags?.split(","),
@@ -837,6 +845,7 @@ export default function DiscountsForm() {
             <TextField
               label="Amount"
               type="number"
+              min={0.01}
               value={form.amount}
               onChange={(event) =>
                 setForm((prevForm) => ({ ...prevForm, amount: event }))
@@ -877,107 +886,54 @@ export default function DiscountsForm() {
                 onClose={() => setPopoverActive(false)}
               >
                 <Popover.Pane fixed>
-                  <InlineGrid
-                    columns={{
-                      xs: "1fr",
-                      mdDown: "1fr",
-                      md: "max-content max-content",
-                    }}
-                    gap={0}
-                    // ref={datePickerRef}
+                  <Box
+                    padding={{ xs: 500 }}
+                    maxWidth={mdDown ? "320px" : "516px"}
                   >
-                    <Box
-                      maxWidth={mdDown ? "516px" : "212px"}
-                      width={mdDown ? "100%" : "212px"}
-                      padding={{ xs: 500, md: 0 }}
-                      paddingBlockEnd={{ xs: 100, md: 0 }}
-                    >
-                      {mdDown ? (
-                        <Select
-                          label="dateRangeLabel"
-                          labelHidden
-                          onChange={(value) => {
-                            const result = ranges.find(
-                              ({ title, alias }) =>
-                                title === value || alias === value
-                            );
-                            setActiveDateRange(result);
-                          }}
-                          value={
-                            activeDateRange?.title ||
-                            activeDateRange?.alias ||
-                            ""
-                          }
-                          options={ranges.map(
-                            ({ alias, title }) => title || alias
-                          )}
-                        />
-                      ) : (
-                        <Scrollable style={{ height: "334px" }}>
-                          <OptionList
-                            options={ranges.map((range) => ({
-                              value: range.alias,
-                              label: range.title,
-                            }))}
-                            selected={activeDateRange.alias}
-                            onChange={(value) => {
-                              setActiveDateRange(
-                                ranges.find((range) => range.alias === value[0])
-                              );
-                            }}
-                          />
-                        </Scrollable>
-                      )}
-                    </Box>
-                    <Box
-                      padding={{ xs: 500 }}
-                      maxWidth={mdDown ? "320px" : "516px"}
-                    >
-                      <BlockStack gap="400">
-                        <InlineStack gap="200">
-                          <div style={{ flexGrow: 1 }}>
-                            <TextField
-                              role="combobox"
-                              label={"Since"}
-                              labelHidden
-                              prefix={<Icon source={CalendarIcon} />}
-                              value={inputValues.since}
-                              onChange={handleStartInputValueChange}
-                              onBlur={handleInputBlur}
-                              autoComplete="off"
-                            />
-                          </div>
-                          <Icon source={ArrowRightIcon} />
-                          <div style={{ flexGrow: 1 }}>
-                            <TextField
-                              role="combobox"
-                              label={"Until"}
-                              labelHidden
-                              prefix={<Icon source={CalendarIcon} />}
-                              value={inputValues.until}
-                              onChange={handleEndInputValueChange}
-                              onBlur={handleInputBlur}
-                              autoComplete="off"
-                            />
-                          </div>
-                        </InlineStack>
-                        <div>
-                          <DatePicker
-                            month={month}
-                            year={year}
-                            selected={{
-                              start: activeDateRange.period.since,
-                              end: activeDateRange.period.until,
-                            }}
-                            onMonthChange={handleMonthChange}
-                            onChange={handleCalendarChange}
-                            multiMonth={shouldShowMultiMonth}
-                            allowRange
+                    <BlockStack gap="400">
+                      <InlineStack gap="200">
+                        <div style={{ flexGrow: 1 }}>
+                          <TextField
+                            role="combobox"
+                            label={"Since"}
+                            labelHidden
+                            prefix={<Icon source={CalendarIcon} />}
+                            value={inputValues.since}
+                            onChange={handleStartInputValueChange}
+                            onBlur={handleInputBlur}
+                            autoComplete="off"
                           />
                         </div>
-                      </BlockStack>
-                    </Box>
-                  </InlineGrid>
+                        <Icon source={ArrowRightIcon} />
+                        <div style={{ flexGrow: 1 }}>
+                          <TextField
+                            role="combobox"
+                            label={"Until"}
+                            labelHidden
+                            prefix={<Icon source={CalendarIcon} />}
+                            value={inputValues.until}
+                            onChange={handleEndInputValueChange}
+                            onBlur={handleInputBlur}
+                            autoComplete="off"
+                          />
+                        </div>
+                      </InlineStack>
+                      <div>
+                        <DatePicker
+                          month={month}
+                          year={year}
+                          selected={{
+                            start: activeDateRange.period.since,
+                            end: activeDateRange.period.until,
+                          }}
+                          onMonthChange={handleMonthChange}
+                          onChange={handleCalendarChange}
+                          multiMonth={shouldShowMultiMonth}
+                          allowRange
+                        />
+                      </div>
+                    </BlockStack>
+                  </Box>
                 </Popover.Pane>
                 <Popover.Pane fixed>
                   <Popover.Section>
