@@ -845,7 +845,6 @@ export default function DiscountsForm() {
             <TextField
               label="Amount"
               type="number"
-              min={0.01}
               value={form.amount}
               onChange={(event) =>
                 setForm((prevForm) => ({ ...prevForm, amount: event }))
